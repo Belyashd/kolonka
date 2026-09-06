@@ -11,20 +11,16 @@ DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 @app.post("/api/voice")
 async def handle_voice_query(file: UploadFile = File(...)):
     audio_bytes = await file.read()
-
     recognizer = sr.Recognizer()
     try:
-        # Передаем сырые байты (16000 Гц, 2 байта на сэмпл для 16-бит)
         audio_data = sr.AudioData(audio_bytes, 16000, 2)
         text_command = recognizer.recognize_google(audio_data, language="ru-RU")
     except Exception as e:
         return {"status": "ignored", "response": f"Речь не распознана: {str(e)}"}
 
-    # Проверяем наличие ключевой фразы
     if "привет стасик" not in text_command.lower():
         return {"status": "ignored", "response": f"Распознано, но нет ключа: {text_command}"}
 
-    # Если фраза есть, отправляем запрос к DeepSeek
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json"
@@ -36,6 +32,37 @@ async def handle_voice_query(file: UploadFile = File(...)):
             {"role": "user", "content": f"Пользователь сказал: {text_command}"}
         ],
         "max_tokens": 150
+    }
+    
+    try:
+        response = requests.post(DEEPSEEK_URL, json=payload, headers=headers)
+        res_data = response.json()
+        answer = res_data["choices"][0]["message"]["content"]
+        return {"status": "success", "response": answer, "recognized": text_command}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/question")
+async def handle_question(file: UploadFile = File(...)):
+    audio_bytes = await file.read()
+    recognizer = sr.Recognizer()
+    try:
+        audio_data = sr.AudioData(audio_bytes, 16000, 2)
+        text_command = recognizer.recognize_google(audio_data, language="ru-RU")
+    except Exception as e:
+        return {"status": "error", "response": "Не удалось расслышать вопрос"}
+
+    headers = {
+        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": "Ты голосовой ассистент по имени Стасик. Отвечай кратко и с юмором."},
+            {"role": "user", "content": text_command}
+        ],
+        "max_tokens": 200
     }
     
     try:
