@@ -10,29 +10,19 @@ DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
 @app.post("/api/voice")
 async def handle_voice_query(file: UploadFile = File(...)):
-    # Сохраняем временный аудиофайл от ESP32
-    audio_path = "temp_audio.wav"
-    with open(audio_path, "wb") as buffer:
-        buffer.write(await file.read())
+    audio_bytes = await file.read()
 
-    # Распознаем речь с помощью бесплатного движка Google
     recognizer = sr.Recognizer()
     try:
-        with sr.AudioFile(audio_path) as source:
-            audio_data = recognizer.record(source)
-            text_command = recognizer.recognize_google(audio_data, language="ru-RU")
+        # Передаем сырые байты (16000 Гц, 2 байта на сэмпл для 16-бит)
+        audio_data = sr.AudioData(audio_bytes, 16000, 2)
+        text_command = recognizer.recognize_google(audio_data, language="ru-RU")
     except Exception as e:
-        # Если аудио неразборчиво или шумит телевизор
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-        return {"status": "ignored", "response": "Речь не распознана"}
-
-    if os.path.exists(audio_path):
-        os.remove(audio_path)
+        return {"status": "ignored", "response": f"Речь не распознана: {str(e)}"}
 
     # Проверяем наличие ключевой фразы
     if "привет стасик" not in text_command.lower():
-        return {"status": "ignored", "response": "Ключевая фраза не найдена"}
+        return {"status": "ignored", "response": f"Распознано, но нет ключа: {text_command}"}
 
     # Если фраза есть, отправляем запрос к DeepSeek
     headers = {
