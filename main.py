@@ -9,10 +9,14 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-c132e498cfb8429caeecac1dce3
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
 class VoiceRequest(BaseModel):
-    text: str
+    command: str
 
 @app.post("/api/voice")
 async def handle_voice_query(req: VoiceRequest):
+    # Проверяем ключевую фразу на сервере
+    if "привет стасик" not in req.command.lower():
+        return {"status": "ignored", "response": "Фактическая команда не распознана"}
+
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json"
@@ -20,8 +24,8 @@ async def handle_voice_query(req: VoiceRequest):
     payload = {
         "model": "deepseek-chat",
         "messages": [
-            {"role": "system", "content": "Ты голосовой ассистент. Отвечай кратко, чтобы удобно было слушать."},
-            {"role": "user", "content": req.text}
+            {"role": "system", "content": "Ты голосовой ассистент по имени Стасик. Отвечай кратко и с юмором."},
+            {"role": "user", "content": "Пользователь позвал тебя: " + req.command}
         ],
         "max_tokens": 150
     }
