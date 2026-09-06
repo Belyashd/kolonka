@@ -13,7 +13,7 @@ async def handle_voice_query(file: UploadFile = File(...)):
     audio_bytes = await file.read()
     recognizer = sr.Recognizer()
     try:
-        audio_data = sr.AudioData(audio_bytes, 16000, 2)
+        audio_data = sr.AudioData(audio_bytes, 8000, 2)
         text_command = recognizer.recognize_google(audio_data, language="ru-RU")
     except Exception as e:
         return {"status": "ignored", "response": f"Речь не распознана: {str(e)}"}
