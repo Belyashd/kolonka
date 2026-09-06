@@ -13,6 +13,7 @@ async def handle_voice_query(file: UploadFile = File(...)):
     audio_bytes = await file.read()
     recognizer = sr.Recognizer()
     try:
+        # Указываем 8000 Гц в соответствии с настройками ESP32
         audio_data = sr.AudioData(audio_bytes, 8000, 2)
         text_command = recognizer.recognize_google(audio_data, language="ru-RU")
     except Exception as e:
@@ -47,7 +48,8 @@ async def handle_question(file: UploadFile = File(...)):
     audio_bytes = await file.read()
     recognizer = sr.Recognizer()
     try:
-        audio_data = sr.AudioData(audio_bytes, 16000, 2)
+        # Здесь также меняем на 8000 Гц
+        audio_data = sr.AudioData(audio_bytes, 8000, 2)
         text_command = recognizer.recognize_google(audio_data, language="ru-RU")
     except Exception as e:
         return {"status": "error", "response": "Не удалось расслышать вопрос"}
